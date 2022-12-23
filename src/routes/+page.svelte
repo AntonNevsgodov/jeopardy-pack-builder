@@ -1,4 +1,6 @@
 <script lang="ts">
+  import categories from './categories.json';
+
   interface StoredMusicConfig {
     filename: string;
     artist: string;
@@ -16,7 +18,6 @@
 
   let musicConfigs: MusicConfig[] | null = null;
   let configsFileHandle: FileSystemFileHandle | null = null;
-  const categories = ['Первая', 'Вторая', 'Третья', 'Четвёртая', 'Пятая'];
   const points = [100, 200, 300, 400, 500];
 
   async function startAudio(config: MusicConfig, timings: 'question' | 'answer') {
