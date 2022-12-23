@@ -14,6 +14,8 @@
   interface MusicConfig extends StoredMusicConfig {
     audio: HTMLAudioElement;
     stopTimeout: ReturnType<typeof setTimeout> | null;
+    timerInterval: ReturnType<typeof setInterval> | null;
+    currentTime: number;
   }
 
   let musicConfigs: MusicConfig[] | null = null;
@@ -24,6 +26,7 @@
     console.log('Start playing');
     const timingsKey = `${timings}Timings` as const;
     config.audio.currentTime = config[timingsKey].start;
+    config.currentTime = config[timingsKey].start;
     await config.audio.play();
 
     config.stopTimeout = setTimeout(
@@ -31,13 +34,20 @@
       (config[timingsKey].end - config[timingsKey].start) * 1000,
     );
 
+    config.timerInterval = setInterval(() => {
+      config.currentTime += 0.1;
+      musicConfigs = musicConfigs;
+    }, 100);
+
     musicConfigs = musicConfigs;
   }
 
   function stopAudio(config: MusicConfig) {
     if (config.stopTimeout) clearTimeout(config.stopTimeout);
+    if (config.timerInterval) clearInterval(config.timerInterval);
     config.audio.pause();
     config.stopTimeout = null;
+    config.timerInterval = null;
     musicConfigs = musicConfigs;
   }
 
@@ -115,6 +125,8 @@
           questionTimings: { start: 0, end: audio.duration },
           answerTimings: { start: 0, end: audio.duration },
           stopTimeout: null,
+          timerInterval: null,
+          currentTime: 0,
           ...musicConfigsFromFile.find((c) => c.filename === handle.name),
         };
       }),
@@ -163,6 +175,9 @@
           до: <input class="full" type="number" step={1} bind:value={config.questionTimings.end} />
           {#if config.stopTimeout}
             <button on:click={() => stopAudio(config)}>⏹️</button>
+            {#if config.stopTimeout}
+              <div class="timer">{config.currentTime.toFixed(1)}</div>
+            {/if}
           {:else}
             <button on:click={() => startAudio(config, 'question')}>▶️</button>
           {/if}
@@ -172,6 +187,9 @@
           до: <input class="full" type="number" step={1} bind:value={config.answerTimings.end} />
           {#if config.stopTimeout}
             <button on:click={() => stopAudio(config)}>⏹️</button>
+            {#if config.stopTimeout}
+              <div class="timer">{config.currentTime.toFixed(1)}</div>
+            {/if}
           {:else}
             <button on:click={() => startAudio(config, 'answer')}>▶️</button>
           {/if}
@@ -203,8 +221,18 @@
   .flex {
     display: flex;
     gap: 0.5rem;
+    justify-content: end;
   }
   .full {
     width: 100%;
+  }
+  .timer {
+    position: absolute;
+    padding: 0.25rem;
+    transform: translate(0%, 100%);
+    background: white;
+    border-radius: 2px;
+    border: 1px grey solid;
+    box-shadow: rgba(0, 0, 0, 0.5) 0px 5px 5px;
   }
 </style>
