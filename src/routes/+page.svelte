@@ -1,5 +1,6 @@
 <script lang="ts">
   import categories from './categories.json';
+  import { fade } from 'svelte/transition';
 
   interface StoredMusicConfig {
     filename: string;
@@ -175,11 +176,13 @@
           до: <input class="full" type="number" step={1} bind:value={config.questionTimings.end} />
           {#if config.stopTimeout}
             <button on:click={() => stopAudio(config)}>⏹️</button>
-            {#if config.stopTimeout}
-              <div class="timer">{config.currentTime.toFixed(1)}</div>
-            {/if}
           {:else}
             <button on:click={() => startAudio(config, 'question')}>▶️</button>
+          {/if}
+          {#if config.stopTimeout}
+            <div out:fade={{ delay: 500, duration: 100 }} class="timer">
+              {config.currentTime.toFixed(1)}
+            </div>
           {/if}
         </div>
         <div class="flex">
@@ -187,11 +190,13 @@
           до: <input class="full" type="number" step={1} bind:value={config.answerTimings.end} />
           {#if config.stopTimeout}
             <button on:click={() => stopAudio(config)}>⏹️</button>
-            {#if config.stopTimeout}
-              <div class="timer">{config.currentTime.toFixed(1)}</div>
-            {/if}
           {:else}
             <button on:click={() => startAudio(config, 'answer')}>▶️</button>
+          {/if}
+          {#if config.stopTimeout}
+            <div out:fade={{ delay: 500, duration: 100 }} class="timer">
+              {config.currentTime.toFixed(1)}
+            </div>
           {/if}
         </div>
       {/each}
