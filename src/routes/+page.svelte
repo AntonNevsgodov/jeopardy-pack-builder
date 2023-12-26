@@ -1,5 +1,4 @@
 <script lang="ts">
-  import categories from './categories.json';
   import { fade } from 'svelte/transition';
 
   interface StoredMusicConfig {
@@ -21,7 +20,11 @@
 
   let musicConfigs: MusicConfig[] | null = null;
   let configsFileHandle: FileSystemFileHandle | null = null;
+  let categories: string[] = [];
+  let categoriesFileHandle: FileSystemFileHandle | null = null
+  let newCategoryName = '';
   const points = [100, 200, 300, 400, 500];
+
 
   async function startAudio(config: MusicConfig, timings: 'question' | 'answer') {
     console.log('Start playing');
@@ -61,9 +64,11 @@
   }
 
   async function saveConfigs() {
-    if (!configsFileHandle || !musicConfigs) return;
-    const stream = await configsFileHandle.createWritable({ keepExistingData: false });
-    await stream.write(
+    if (!configsFileHandle || !musicConfigs || !categoriesFileHandle) return;
+    const songsConfigStream = await configsFileHandle.createWritable({ keepExistingData: false });
+    const categoriesConfigStream = await categoriesFileHandle.createWritable({ keepExistingData: false });
+
+    await songsConfigStream.write(
       JSON.stringify(
         musicConfigs.map(
           (c): StoredMusicConfig => ({
@@ -78,17 +83,26 @@
         ),
       ),
     );
-    await stream.close();
+
+    await categoriesConfigStream.write(JSON.stringify(categories));
+    await categoriesConfigStream.close()
+    await songsConfigStream.close();
   }
 
   async function pickFolder() {
     const dir = await window.showDirectoryPicker();
 
     if ((await dir.requestPermission({ mode: 'readwrite' })) === 'denied') {
-      alert('А всё, я этот сайт больше не работает');
+      alert('А всё, этот сайт больше не работает');
     }
 
     configsFileHandle = await dir.getFileHandle('config.json', { create: true });
+    categoriesFileHandle = await dir.getFileHandle('categories.json', { create: true });
+
+    categories = await categoriesFileHandle
+      .getFile()
+      .then(file => file.text())
+      .then((str) => JSON.parse(str));
 
     const musicConfigsFromFile: StoredMusicConfig[] = await configsFileHandle
       .getFile()
@@ -99,7 +113,8 @@
     const musicFilesHandles: FileSystemFileHandle[] = [];
 
     for await (const handle of dir.values()) {
-      if (handle.isDirectory || !handle.name.endsWith('.mp3')) continue;
+      const exts = ['.mp3', '.ogg', '.wav'];
+      if (handle.isDirectory || !exts.some(ext => handle.name.endsWith(ext))) continue;
       musicFilesHandles.push(handle);
     }
 
@@ -200,6 +215,25 @@
           {/if}
         </div>
       {/each}
+    </div>
+
+    <h3>Категории:</h3>
+    <div style:display="flex" style:flex-direction="column" style:gap="12px" style:align-items="flex-start">
+      {#each categories as category}
+        <div>
+          <button on:click={() => {
+            categories = categories.filter(c => c !== category);
+          }}>-</button>
+          {category}
+        </div>
+      {/each}
+      <div>
+        <input type="text" placeholder="Новая категория" bind:value={newCategoryName}>
+        <button on:click={() => {
+          categories = [...categories, newCategoryName];
+          newCategoryName = '';
+        }}>+</button>
+      </div>
     </div>
   {/if}
 </main>
